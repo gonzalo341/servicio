@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestor de Saludos</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; }
+        input { padding: 8px; width: 65%; }
+        button { padding: 8px 12px; cursor: pointer; }
+        ul { list-style: none; padding: 0; margin-top: 20px; }
+        li { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #ddd; }
+        .acciones button { margin-left: 5px; }
+    </style>
+</head>
+<body>
+
+<h2>Mis Saludos</h2>
+
+<!-- Formulario para crear (POST) -->
+<div>
+    <input type="text" id="textoSaludo" placeholder="Escribí un saludo...">
+    <button onclick="crearSaludo()">Guardar</button>
+</div>
+
+<!-- Lista donde aparecen los saludos (GET) -->
+<ul id="listaSaludos"></ul>
+
+<script>
+    // 1. Cargar la lista al abrir la página (GET)
+    async function cargarSaludos() {
+        const respuesta = await fetch('/greetings');
+        const saludos = await respuesta.json();
+
+        const lista = document.getElementById('listaSaludos');
+        lista.innerHTML = '';
+
+        saludos.forEach(s => {
+            lista.innerHTML += `
+                    <li>
+                        <span><strong>#${s.id}</strong> - ${s.content}</span>
+                        <div class="acciones">
+                            <button onclick="editarSaludo(${s.id}, '${s.content}')">Editar</button>
+                            <button onclick="borrarSaludo(${s.id})">Borrar</button>
+                        </div>
+                    </li>
+                `;
+        });
+    }
+
+    // 2. Crear un saludo nuevo (POST)
+    async function crearSaludo() {
+        const input = document.getElementById('textoSaludo');
+        if (!input.value) return;
+
+        await fetch('/greeting', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: 0, content: input.value }) // <-- Agregamos id: 0
+        });
+
+        input.value = '';
+        cargarSaludos();
+    }
+
+    // 3. Cambiar el contenido de un saludo (PUT)
+    async function editarSaludo(id, textoActual) {
+        const nuevoTexto = prompt("Escribí el nuevo saludo:", textoActual);
+        if (!nuevoTexto) return;
+
+        await fetch(`/greeting/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, content: nuevoTexto }) // <-- Agregamos id: id
+        });
+
+        cargarSaludos();
+    }
+
+    // 4. Eliminar un saludo (DELETE)
+    async function borrarSaludo(id) {
+        await fetch(`/greeting/${id}`, {
+            method: 'DELETE'
+        });
+
+        cargarSaludos(); // Refresca la lista
+    }
+
+    // Ejecutar al inicio
+    cargarSaludos();
+</script>
+
+</body>
+</html>
